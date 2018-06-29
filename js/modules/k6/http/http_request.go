@@ -693,7 +693,7 @@ func (h *HTTP) Batch(ctx context.Context, reqsV goja.Value) (goja.Value, error) 
 		}
 		parsedReqs[key] = parsedReq
 	}
-
+	fmt.Println("Batching requests")
 	for k, pr := range parsedReqs {
 		go func(key string, parsedReq *parsedHTTPRequest) {
 			globalLimiter.Begin()

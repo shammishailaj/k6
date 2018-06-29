@@ -157,11 +157,12 @@ func (r *Runner) newVU() (*VU, error) {
 		Renegotiation:      tls.RenegotiateFreelyAsClient,
 	}
 	transport := &http.Transport{
-		Proxy:              http.ProxyFromEnvironment,
-		TLSClientConfig:    tlsConfig,
-		DialContext:        dialer.DialContext,
-		DisableCompression: true,
-		DisableKeepAlives:  r.Bundle.Options.NoConnectionReuse.Bool,
+		Proxy:               http.ProxyFromEnvironment,
+		TLSClientConfig:     tlsConfig,
+		DialContext:         dialer.DialContext,
+		DisableCompression:  true,
+		DisableKeepAlives:   r.Bundle.Options.NoConnectionReuse.Bool,
+		MaxIdleConnsPerHost: 2,
 	}
 	_ = http2.ConfigureTransport(transport)
 

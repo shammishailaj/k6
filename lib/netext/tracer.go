@@ -22,6 +22,7 @@ package netext
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http/httptrace"
 	"sync"
@@ -206,8 +207,8 @@ func (t *Tracer) TLSHandshakeStart() {
 // If the request was cancelled, this could be called after the
 // RoundTrip() method has returned.
 func (t *Tracer) TLSHandshakeDone(state tls.ConnectionState, err error) {
+	fmt.Println("TLSHandshakeDone ==>", time.Now().String())
 	atomic.CompareAndSwapInt64(&t.tlsHandshakeDone, 0, now())
-
 	if err != nil {
 		t.addError(err)
 	}
@@ -239,6 +240,7 @@ func (t *Tracer) GotConn(info httptrace.GotConnInfo) {
 // request and any body. It may be called multiple times
 // in the case of retried requests.
 func (t *Tracer) WroteRequest(info httptrace.WroteRequestInfo) {
+	fmt.Println("WroteRequest ======>", time.Now().String())
 	atomic.StoreInt64(&t.wroteRequest, now())
 
 	if info.Err != nil {
@@ -291,6 +293,9 @@ func (t *Tracer) Done() *Trail {
 		// TLS Handshake Done time to calculate sending duration
 		if tlsHandshakeDone != 0 {
 			trail.Sending = time.Duration(wroteRequest - tlsHandshakeDone)
+			if trail.Sending < 0 {
+				fmt.Println("Negative sending value", trail.Sending)
+			}
 		}
 
 		if gotFirstResponseByte != 0 {
