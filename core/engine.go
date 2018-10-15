@@ -100,7 +100,10 @@ func NewEngine(ex lib.Executor, o lib.Options) (*Engine, error) {
 			continue
 		}
 
-		parent, sm := stats.NewSubmetric(name)
+		parent, sm, err := stats.NewSubmetric(name)
+		if err != nil {
+			return nil, err
+		}
 		e.submetrics[parent] = append(e.submetrics[parent], sm)
 	}
 
@@ -361,7 +364,13 @@ func (e *Engine) processSamples(sampleCointainers []stats.SampleContainer) {
 		for _, sample := range samples {
 			m, ok := e.Metrics[sample.Metric.Name]
 			if !ok {
-				m = stats.New(sample.Metric.Name, sample.Metric.Type, sample.Metric.Contains)
+				var err error
+				m, err = stats.New(sample.Metric.Name, sample.Metric.Type, sample.Metric.Contains)
+				if err != nil {
+					// We should have already Checked this one
+					panic(err)
+				}
+
 				m.Thresholds = e.thresholds[m.Name]
 				m.Submetrics = e.submetrics[m.Name]
 				e.Metrics[m.Name] = m
@@ -374,7 +383,12 @@ func (e *Engine) processSamples(sampleCointainers []stats.SampleContainer) {
 				}
 
 				if sm.Metric == nil {
-					sm.Metric = stats.New(sm.Name, sample.Metric.Type, sample.Metric.Contains)
+					var err error
+					sm.Metric, err = stats.New(sm.Name, sample.Metric.Type, sample.Metric.Contains)
+					if err != nil {
+						// We should have already Checked this one
+						panic(err)
+					}
 					sm.Metric.Sub = *sm
 					sm.Metric.Thresholds = e.thresholds[sm.Name]
 					e.Metrics[sm.Name] = sm.Metric

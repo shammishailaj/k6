@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -42,6 +43,8 @@ const (
 	defaultString = `"default"`
 	timeString    = `"time"`
 	dataString    = `"data"`
+
+	nameRegexString = "^[\\p{L}\\p{N}\\._ -]{1,50}$"
 )
 
 // Possible values for MetricType.
@@ -59,11 +62,17 @@ const (
 	Data                      // Values are data amounts (bytes)
 )
 
-// The serialized metric type is invalid.
+// ErrInvalidMetricName is the error returned when the name of the metric is not containeing only
+// letters, numbers, hyphens, dots, underscores, dots and both normal and square brackets
+var ErrInvalidMetricName = errors.New("Invalid metric name")
+
+// ErrInvalidMetricType means that the serialized metric type is invalid.
 var ErrInvalidMetricType = errors.New("Invalid metric type")
 
-// The serialized value type is invalid.
+// ErrInvalidValueType means that the serialized value type is invalid.
 var ErrInvalidValueType = errors.New("Invalid value type")
+
+var compileNameRegex = regexp.MustCompile(nameRegexString)
 
 // A MetricType specifies the type of a metric.
 type MetricType int
@@ -117,7 +126,7 @@ func (t MetricType) String() string {
 	}
 }
 
-// The type of values a metric contains.
+// ValueType is the type of values a metric contains.
 type ValueType int
 
 // MarshalJSON serializes a ValueType as a human readable string.
@@ -205,6 +214,7 @@ func (st *SampleTags) IsEqual(other *SampleTags) bool {
 	return true
 }
 
+// Contains returns true if all elements of other SimpleTags are elements of this one
 func (st *SampleTags) Contains(other *SampleTags) bool {
 	if st == other || other == nil {
 		return true
@@ -411,7 +421,17 @@ type Metric struct {
 	Sink       Sink         `json:"-"`
 }
 
-func New(name string, typ MetricType, t ...ValueType) *Metric {
+func checkName(name string) bool {
+	return compileNameRegex.Match([]byte(name))
+}
+
+// New Returns a new metric. The possible errors returned are ErrInvalidMetricName when the name is not
+// conforming and ErrInvalidMetricType when the metric type is not supported
+func New(name string, typ MetricType, t ...ValueType) (*Metric, error) {
+	if !checkName(name) {
+		return nil, ErrInvalidMetricName
+	}
+
 	vt := Default
 	if len(t) > 0 {
 		vt = t[0]
@@ -427,9 +447,9 @@ func New(name string, typ MetricType, t ...ValueType) *Metric {
 	case Rate:
 		sink = &RateSink{}
 	default:
-		return nil
+		return nil, ErrInvalidMetricType
 	}
-	return &Metric{Name: name, Type: typ, Contains: vt, Sink: sink}
+	return &Metric{Name: name, Type: typ, Contains: vt, Sink: sink}, nil
 }
 
 var unitMap = map[string][]interface{}{
@@ -438,6 +458,7 @@ var unitMap = map[string][]interface{}{
 	"us": {"µs", time.Microsecond},
 }
 
+// HumanizeValue returns are human readable represantion of the metric
 func (m *Metric) HumanizeValue(v float64, timeUnit string) string {
 	switch m.Type {
 	case Rate:
@@ -480,11 +501,14 @@ type Submetric struct {
 	Metric *Metric     `json:"-"`
 }
 
-// Creates a submetric from a name.
-func NewSubmetric(name string) (parentName string, sm *Submetric) {
+// NewSubmetric creates a submetric from a name.
+func NewSubmetric(name string) (parentName string, sm *Submetric, err error) {
 	parts := strings.SplitN(strings.TrimSuffix(name, "}"), "{", 2)
 	if len(parts) == 1 {
-		return parts[0], &Submetric{Name: name}
+		if !checkName(name) {
+			return "", nil, ErrInvalidMetricName
+		}
+		return parts[0], &Submetric{Name: name}, nil
 	}
 
 	kvs := strings.Split(parts[1], ",")
@@ -504,9 +528,13 @@ func NewSubmetric(name string) (parentName string, sm *Submetric) {
 		value := strings.TrimSpace(strings.Trim(parts[1], `"'`))
 		tags[key] = value
 	}
-	return parts[0], &Submetric{Name: name, Parent: parts[0], Suffix: parts[1], Tags: IntoSampleTags(&tags)}
+	if !checkName(name) {
+		return "", nil, ErrInvalidMetricName
+	}
+	return parts[0], &Submetric{Name: name, Parent: parts[0], Suffix: parts[1], Tags: IntoSampleTags(&tags)}, nil
 }
 
+// Summary returns a Summary object representing a summary of the metric
 func (m *Metric) Summary(t time.Duration) *Summary {
 	return &Summary{
 		Metric:  m,
@@ -514,6 +542,7 @@ func (m *Metric) Summary(t time.Duration) *Summary {
 	}
 }
 
+// Summary is a object containing summariazed metric
 type Summary struct {
 	Metric  *Metric            `json:"metric"`
 	Summary map[string]float64 `json:"summary"`

@@ -159,7 +159,8 @@ func TestNew(t *testing.T) {
 		name, data := name, data
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			m := New("my_metric", data.Type)
+			m, err := New("my_metric", data.Type)
+			assert.NoError(t, err)
 			assert.Equal(t, "my_metric", m.Name)
 			assert.IsType(t, data.SinkType, m.Sink)
 		})
@@ -186,7 +187,8 @@ func TestNewSubmetric(t *testing.T) {
 		name, data := name, data
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			parent, sm := NewSubmetric(name)
+			parent, sm, err := NewSubmetric(name)
+			assert.NoError(t, err)
 			assert.Equal(t, data.parent, parent)
 			if data.tags != nil {
 				assert.EqualValues(t, data.tags, sm.Tags.tags)
@@ -261,8 +263,10 @@ func TestSampleImplementations(t *testing.T) {
 	tagMap := map[string]string{"key1": "val1", "key2": "val2"}
 	now := time.Now()
 
+	var metric, err = New("test_metric", Counter)
+	assert.NoError(t, err)
 	sample := Sample{
-		Metric: New("test_metric", Counter),
+		Metric: metric,
 		Time:   now,
 		Tags:   NewSampleTags(tagMap),
 		Value:  1.0,
@@ -280,4 +284,26 @@ func TestSampleImplementations(t *testing.T) {
 	assert.Equal(t, now, sample.GetTime())
 	assert.Equal(t, now, cSamples.GetTime())
 	assert.Equal(t, sample.GetTags(), sample.GetTags())
+}
+
+func TestMetricNames(t *testing.T) {
+	t.Parallel()
+	var testMap = map[string]bool{
+		"simple":       true,
+		"still_simple": true,
+		"":             false,
+		"@":            false,
+		"a":            true,
+		"special\n\t":  false,
+		// this has both hangul and japanese numerals .
+		"hello.World_in_한글一안녕一세상": true,
+		// too long
+		"tooolooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog": false,
+	}
+
+	for key, value := range testMap {
+		t.Run(key, func(t *testing.T) {
+			assert.Equal(t, value, checkName(key), key)
+		})
+	}
 }

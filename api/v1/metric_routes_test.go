@@ -39,7 +39,7 @@ func TestGetMetrics(t *testing.T) {
 	assert.NoError(t, err)
 
 	engine.Metrics = map[string]*stats.Metric{
-		"my_metric": stats.New("my_metric", stats.Trend, stats.Time),
+		"my_metric": newTestMetric(t, "my_metric", stats.Trend, stats.Time),
 	}
 	engine.Metrics["my_metric"].Tainted = null.BoolFrom(true)
 
@@ -78,7 +78,7 @@ func TestGetMetric(t *testing.T) {
 	assert.NoError(t, err)
 
 	engine.Metrics = map[string]*stats.Metric{
-		"my_metric": stats.New("my_metric", stats.Trend, stats.Time),
+		"my_metric": newTestMetric(t, "my_metric", stats.Trend, stats.Time),
 	}
 	engine.Metrics["my_metric"].Tainted = null.BoolFrom(true)
 

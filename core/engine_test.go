@@ -47,6 +47,13 @@ type testErrorWithString string
 func (e testErrorWithString) Error() string  { return string(e) }
 func (e testErrorWithString) String() string { return string(e) }
 
+func newTestMetric(t *testing.T, name string, typ stats.MetricType, ts ...stats.ValueType) *stats.Metric {
+	t.Helper()
+	m, err := stats.New(name, typ, ts...)
+	assert.NoError(t, err)
+	return m
+}
+
 // Apply a null logger to the engine and return the hook.
 func applyNullLogger(e *Engine) *logtest.Hook {
 	logger, hook := logtest.NewNullLogger()
@@ -245,7 +252,7 @@ func TestEngineRun(t *testing.T) {
 
 	// Make sure samples are discarded after context close (using "cutoff" timestamp in local.go)
 	t.Run("collects samples", func(t *testing.T) {
-		testMetric := stats.New("test_metric", stats.Trend)
+		testMetric := newTestMetric(t, "test_metric", stats.Trend)
 
 		signalChan := make(chan interface{})
 		var e *Engine
@@ -295,6 +302,7 @@ func TestEngineRun(t *testing.T) {
 	})
 }
 
+
 func TestEngineAtTime(t *testing.T) {
 	e, err, _ := newTestEngine(nil, lib.Options{})
 	assert.NoError(t, err)
@@ -305,7 +313,7 @@ func TestEngineAtTime(t *testing.T) {
 }
 
 func TestEngineCollector(t *testing.T) {
-	testMetric := stats.New("test_metric", stats.Trend)
+	testMetric := newTestMetric(t, "test_metric", stats.Trend)
 
 	e, err, _ := newTestEngine(LF(func(ctx context.Context, out chan<- stats.SampleContainer) error {
 		out <- stats.Sample{Metric: testMetric}
@@ -336,7 +344,7 @@ func TestEngineCollector(t *testing.T) {
 }
 
 func TestEngine_processSamples(t *testing.T) {
-	metric := stats.New("my_metric", stats.Gauge)
+	metric := newTestMetric(t, "my_metric", stats.Gauge)
 
 	t.Run("metric", func(t *testing.T) {
 		e, err, _ := newTestEngine(nil, lib.Options{})
@@ -374,7 +382,7 @@ func TestEngine_processSamples(t *testing.T) {
 }
 
 func TestEngine_runThresholds(t *testing.T) {
-	metric := stats.New("my_metric", stats.Gauge)
+	metric := newTestMetric(t, "my_metric", stats.Gauge)
 	thresholds := make(map[string]stats.Thresholds, 1)
 
 	ths, err := stats.NewThresholds([]string{"1+1==3"})
@@ -432,7 +440,7 @@ func TestEngine_runThresholds(t *testing.T) {
 }
 
 func TestEngine_processThresholds(t *testing.T) {
-	metric := stats.New("my_metric", stats.Gauge)
+	metric := newTestMetric(t, "my_metric", stats.Gauge)
 
 	testdata := map[string]struct {
 		pass  bool

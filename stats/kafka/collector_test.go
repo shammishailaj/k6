@@ -61,7 +61,8 @@ func TestRun(t *testing.T) {
 
 func TestFormatSamples(t *testing.T) {
 	c := Collector{}
-	metric := stats.New("my_metric", stats.Gauge)
+	metric, err := stats.New("my_metric", stats.Gauge)
+	assert.NoError(t, err)
 	samples := stats.Samples{
 		{Metric: metric, Value: 1.25, Tags: stats.IntoSampleTags(&map[string]string{"a": "1"})},
 		{Metric: metric, Value: 2, Tags: stats.IntoSampleTags(&map[string]string{"b": "2"})},

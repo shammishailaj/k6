@@ -45,7 +45,11 @@ func newMetric(ctxPtr *context.Context, name string, t stats.MetricType, isTime 
 	}
 
 	rt := common.GetRuntime(*ctxPtr)
-	return common.Bind(rt, Metric{stats.New(name, t, valueType)}, ctxPtr), nil
+	m, err := stats.New(name, t, valueType)
+	if err != nil {
+		return nil, err
+	}
+	return common.Bind(rt, Metric{metric: m}, ctxPtr), nil
 }
 
 func (m Metric) Add(ctx context.Context, v goja.Value, addTags ...map[string]string) {

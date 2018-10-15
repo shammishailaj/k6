@@ -83,8 +83,15 @@ func TestNullValueTypeJSON(t *testing.T) {
 	})
 }
 
+func newTestMetric(t *testing.T, name string, typ stats.MetricType, ts ...stats.ValueType) *stats.Metric {
+	t.Helper()
+	m, err := stats.New(name, typ, ts...)
+	assert.NoError(t, err)
+	return m
+}
+
 func TestNewMetric(t *testing.T) {
-	old := stats.New("name", stats.Trend, stats.Time)
+	old := newTestMetric(t, "name", stats.Trend, stats.Time)
 	old.Tainted = null.BoolFrom(true)
 	m := NewMetric(old, 0)
 	assert.Equal(t, "name", m.Name)
