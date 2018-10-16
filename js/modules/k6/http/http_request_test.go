@@ -256,7 +256,7 @@ func TestRequestAndBatch(t *testing.T) {
 			`))
 			endTime := time.Now()
 			assert.EqualError(t, err, sr("GoError: Get HTTPBIN_URL/delay/10: net/http: request canceled (Client.Timeout exceeded while awaiting headers)"))
-			assert.WithinDuration(t, startTime.Add(1*time.Second), endTime, 1*time.Second)
+			assert.WithinDuration(t, startTime.Add(1*time.Second), endTime, 2*time.Second)
 
 			logEntry := hook.LastEntry()
 			if assert.NotNil(t, logEntry) {
