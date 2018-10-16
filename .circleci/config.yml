@@ -38,6 +38,7 @@ jobs:
           command: |
             export PATH=$GOPATH/bin:$PATH
             echo "mode: set" > coverage.txt
+            free -s1 -mh &
             for pkg in $(go list ./... | grep -v vendor); do
                 go test -race -timeout 600s -coverprofile=$(echo $pkg | tr / -).coverage $pkg
             done
