@@ -37,12 +37,12 @@ jobs:
           name: Run tests and code coverage
           command: |
             export PATH=$GOPATH/bin:$PATH
-            export GOMAXPROCS=4
+            export GOMAXPROCS=2
             echo "mode: set" > coverage.txt
             cat /proc/cpuinfo
             while true; do echo; date; ps aux | { read -r line; echo "$line"; grep go; } | awk 'NR>1 {$6=int($6/1024)"M";}{ print;}'; echo; sleep 1; done &
             for pkg in $(go list ./... | grep -v vendor); do
-                go test -parallel 4 -race -timeout 600s -coverprofile=$(echo $pkg | tr / -).coverage $pkg
+                go test -parallel 2 -race -timeout 600s -coverprofile=$(echo $pkg | tr / -).coverage $pkg
             done
             grep -h -v "^mode:" *.coverage >> coverage.txt
             rm -f *.coverage
