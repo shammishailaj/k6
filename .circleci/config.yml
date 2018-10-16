@@ -38,7 +38,7 @@ jobs:
           command: |
             export PATH=$GOPATH/bin:$PATH
             echo "mode: set" > coverage.txt
-            free -s1 -mh &
+            while true; do echo; date; ps aux | { read -r line; echo "$line"; grep go; } | awk 'NR>1 {$5=int($5/1024)"M";}{ print;}'; echo; sleep 1; done &
             for pkg in $(go list ./... | grep -v vendor); do
                 go test -race -timeout 600s -coverprofile=$(echo $pkg | tr / -).coverage $pkg
             done
